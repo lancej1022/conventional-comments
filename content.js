@@ -381,8 +381,17 @@ function initializeToolbarForTextarea(textarea) {
     // Initial rendering
     renderToolbar(toolbar, textarea);
 
-    // Insert toolbar *before* the textarea
-    textarea.parentNode?.insertBefore(toolbar, textarea); // Safer insertion
+    // Insert toolbar *before* the textarea or its wrapper, depending on experience
+    if (textarea.classList.contains('prc-Textarea-TextArea-13q4j')) {
+        // New GitHub experience: insert toolbar before the wrapper <span>
+        const wrapper = textarea.closest('span');
+        if (wrapper && wrapper.parentNode) {
+            wrapper.parentNode.insertBefore(toolbar, wrapper);
+        }
+    } else {
+        // Default: insert before textarea
+        textarea.parentNode?.insertBefore(toolbar, textarea);
+    }
 
     textarea.classList.add(TOOLBAR_MARKER_CLASS); // Mark textarea
 }
