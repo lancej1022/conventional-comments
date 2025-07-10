@@ -8,14 +8,18 @@ const SETTINGS_BUTTON_ID_PREFIX = 'cc-settings-button-'; // Prefix for settings 
 
 // Selectors for GitHub textareas where the toolbar should appear
 const TARGET_TEXTAREA_SELECTORS = [
-    // GitHub selectors
+    // GitHub selectors (old experience)
     'textarea[name="comment[body]"]',                     // Standard issue/PR comments
     'textarea[name="issue_comment[body]"]',               // Editing existing PR issue comments
     'textarea[name="pull_request_review_comment[body]"]', // Editing existing PR review line comments
     'textarea[name="pull_request_review[body]"]',          // Review Changes modal/popup form
     // GitLab selectors
     'textarea[name="note[note]"]',                        // MR discussions (incl. line comments)
-    'textarea[name="work-item-add-or-edit-comment"]'      // Issue discussions (incl. new descriptions & comments)
+    'textarea[name="work-item-add-or-edit-comment"]',      // Issue discussions (incl. new descriptions & comments)
+    // --- New GitHub code review experience selectors ---
+    'textarea.prc-Textarea-TextArea-13q4j',                 // New experience: main textarea class
+    'textarea[aria-label="Markdown value"]',               // New experience: robust selector by aria-label
+    'textarea[aria-describedby$="-description"]'           // New experience: robust selector by aria-describedby suffix
 ];
 
 // Combine selectors with :not(.cc-toolbar-added) for querying unprocessed textareas
