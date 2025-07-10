@@ -36,6 +36,7 @@ const LABELS = [
     { label: 'praise', desc: 'Highlight something positive.', color: '#28A745' },                   // Green - Standard for success/positive feedback
     { label: 'nitpick', desc: 'Minor, non-blocking issues (style, naming...).', color: '#F59E0B' }, // Amber/Dark Yellow - Suggests caution, minor warning
     { label: 'suggestion', desc: 'Suggest specific improvements.', color: '#3B82F6' },              // Blue - Often used for informational/suggestions
+    { label: 'todo', desc: 'Mark something that needs to be done.', color: '#E879F9' },             // Softer Magenta for TODOs
     { label: 'issue', desc: 'Point out a blocking problem.', color: '#EF4444' },                    // Red - Standard for errors/critical problems
     { label: 'question', desc: 'Ask for clarification.', color: '#8B5CF6' },                        // Violet/Purple - Distinct color often used for queries/info
     { label: 'thought', desc: 'Share a reflection or idea.', color: '#6B7280' },                    // Cool Gray - Neutral, less prominent, for reflections
@@ -50,8 +51,8 @@ const DECORATIONS = [
 
 // --- Selector for formatted Conventional Comments ---
 
-const PLAIN_CC_REGEX = /^\s*(?:(praise|nitpick|suggestion|issue|question|thought|chore)\s*(?:\((non-blocking|blocking|if-minor)\))?:)\s*/;
-const BADGE_CC_REGEX = /^\s*\[\!\[(?:(praise|nitpick|suggestion|issue|question|thought|chore)(?:\((non-blocking|blocking|if-minor)\))?)\]\(https?:\/\/img\.shields\.io\/badge\/.*?\)\]\(https?:\/\/pullpo\.io\/cc\?.*?\)\s*/;
+const PLAIN_CC_REGEX = /^\s*(?:(praise|nitpick|suggestion|issue|question|thought|chore|todo)\s*(?:\((non-blocking|blocking|if-minor)\))?:)\s*/;
+const BADGE_CC_REGEX = /^\s*\[\!\[(?:(praise|nitpick|suggestion|issue|question|thought|chore|todo)(?:\((non-blocking|blocking|if-minor)\))?)\]\(https?:\/\/img\.shields\.io\/badge\/.*?\)\]\(https?:\/\/pullpo\.io\/cc\?.*?\)\s*/;
 
 // --- Global Couters ---
 
