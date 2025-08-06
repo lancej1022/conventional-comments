@@ -29,6 +29,7 @@ function buildChrome() {
 
   // Copy required files
   copyFile('./content.js', path.join(chromeDir, 'content.js'));
+  copyFile('./background.js', path.join(chromeDir, 'background.js'));
   copyFile('./style.css', path.join(chromeDir, 'style.css'));
   
   // Copy icons
@@ -64,6 +65,7 @@ function buildFirefox() {
 
   // Copy required files
   copyFile('./content.js', path.join(firefoxDir, 'content.js'));
+  copyFile('./background.js', path.join(firefoxDir, 'background.js'));
   copyFile('./style.css', path.join(firefoxDir, 'style.css'));
   
   // Copy icons

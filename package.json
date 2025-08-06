@@ -6,5 +6,8 @@
     "build:chrome": "node build-manifests.js chrome",
     "build:firefox": "node build-manifests.js firefox",
     "build": "npm run build:chrome && npm run build:firefox"
+  },
+  "dependencies": {
+    "webextension-polyfill": "^0.12.0"
   }
-} 
+}

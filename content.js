@@ -1,4 +1,4 @@
-// --- Selector Constants ---
+// --- Toolbar selector Constants ---
 
 const TOOLBAR_ID_PREFIX = 'conventional-comments-toolbar-'; // Use prefix for uniqueness
 const TOOLBAR_MARKER_CLASS = 'cc-toolbar-added';
@@ -6,20 +6,20 @@ const SETTINGS_BUTTON_ID_PREFIX = 'cc-settings-button-'; // Prefix for settings 
 
 // --- Global Selector for Textareas ---
 
-// Selectors for GitHub textareas where the toolbar should appear
+// Selectors for textareas where the toolbar should appear
 const TARGET_TEXTAREA_SELECTORS = [
     // GitHub selectors (old experience)
     'textarea[name="comment[body]"]',                     // Standard issue/PR comments
     'textarea[name="issue_comment[body]"]',               // Editing existing PR issue comments
     'textarea[name="pull_request_review_comment[body]"]', // Editing existing PR review line comments
-    'textarea[name="pull_request_review[body]"]',          // Review Changes modal/popup form
+    'textarea[name="pull_request_review[body]"]',         // Review Changes modal/popup form
+    // GitHub selectors (new experience)
+    'textarea.prc-Textarea-TextArea-13q4j',               // Main textarea class
+    'textarea[aria-label="Markdown value"]',              // Robust selector by aria-label
+    'textarea[aria-describedby$="-description"]',         // Robust selector by aria-describedby suffix
     // GitLab selectors
     'textarea[name="note[note]"]',                        // MR discussions (incl. line comments)
-    'textarea[name="work-item-add-or-edit-comment"]',      // Issue discussions (incl. new descriptions & comments)
-    // --- New GitHub code review experience selectors ---
-    'textarea.prc-Textarea-TextArea-13q4j',                 // New experience: main textarea class
-    'textarea[aria-label="Markdown value"]',               // New experience: robust selector by aria-label
-    'textarea[aria-describedby$="-description"]'           // New experience: robust selector by aria-describedby suffix
+    'textarea[name="work-item-add-or-edit-comment"]',     // Issue discussions (incl. new descriptions & comments)
 ];
 
 // Combine selectors with :not(.cc-toolbar-added) for querying unprocessed textareas
@@ -29,6 +29,29 @@ const UNPROCESSED_TEXTAREA_QUERY = TARGET_TEXTAREA_SELECTORS.map(
 
 // Selector matching any target textarea
 const ANY_TARGET_TEXTAREA_QUERY = TARGET_TEXTAREA_SELECTORS.join(', ');
+
+// --- Thread selector constants ---
+
+const SLACK_LINK_MARKER_CLASS = 'cc-slack-button-added';
+
+// --- Global selector for threads ---
+
+// Selectors for threads where Slack discussion link should appear
+const TARGET_THREAD_SELECTORS = [
+    // GitHub (old experience)
+    '.comment-holder',
+    // GitHub (new experience)
+    'div[data-marker-id]'
+    // TODO: GitLab
+]
+
+// Combine selectors with :not(.cc-slack-button-added) for querying unprocessed threads
+const UNPROCESSED_THREAD_QUERY = TARGET_THREAD_SELECTORS.map(
+    sel => `${sel}:not(.${SLACK_LINK_MARKER_CLASS})`
+).join(', ');
+
+// Selector matching any target textarea
+const ANY_TARGET_THREAD_QUERY = TARGET_THREAD_SELECTORS.join(', ');
 
 // --- Components of a Conventional Comment ---
 
@@ -54,9 +77,9 @@ const DECORATIONS = [
 const PLAIN_CC_REGEX = /^\s*(?:(praise|nitpick|suggestion|issue|question|thought|chore|todo)\s*(?:\((non-blocking|blocking|if-minor)\))?:)\s*/;
 const BADGE_CC_REGEX = /^\s*\[\!\[(?:(praise|nitpick|suggestion|issue|question|thought|chore|todo)(?:\((non-blocking|blocking|if-minor)\))?)\]\(https?:\/\/img\.shields\.io\/badge\/.*?\)\]\(https?:\/\/pullpo\.io\/cc\?.*?\)\s*/;
 
-// --- Global Couters ---
+// --- Global Counters ---
 
-let toolbarCounter = 0; // Ensure unique IDs if multiple textareas load simultaneously
+let toolbarCounter = 0;  // Ensure unique IDs if multiple textareas load simultaneously
 let settingsCounter = 0; // Unique IDs for settings elements
 
 // --- Badge Helpers ---
@@ -112,6 +135,157 @@ function createBadgeMarkdown(type, decoration) {
     // If decoration exists, include it, otherwise just use the label
     const pullpoUrl = `https://pullpo.io/cc?l=${encodeURIComponent(type)}${decoration ? `&d=${encodeURIComponent(decoration)}` : ''}`;
     return `[${badge}](${pullpoUrl}) `; // Wrap badge in link with trailing space
+}
+
+// --- Slack discussion helpers ---
+
+let slackStatus = '';      // PENDING, UNAVAILABLE, NOT_INSTALLED, NOT_TRACKED, AVAILABLE
+let slackRedirectKey = ''; // Cached on Slack status check
+let slackRequesterId = ''; // Cached on Slack status check: unnecessary to look it up at thread UI processing
+
+async function checkSlackStatus() {
+    if (slackStatus == 'PENDING') return;
+
+    slackStatus = 'PENDING';
+
+    // Obtain Slack status check parameters
+    const domain = window.location.hostname;
+    let organization, repository, number, requester_id;
+
+    try {
+        switch (domain) {
+            case 'github.com':
+                ({ organization, repository, number, requester_id }) = await extractSlackStatusCheckParamsFromGithub();
+                break;
+            case 'gitlab.com':
+                ({ organization, repository, number, requester_id }) = extractSlackStatusCheckParamsFromGitlab();
+                break;
+            default:
+                return;
+        }
+
+        slackRequesterId = requester_id;
+    
+        const response = await browser.runtime.sendMessage({
+            type: 'GET_PR_SLACK_STATUS',
+            domain,
+            organization,
+            repository,
+            number,
+            requester_id,
+        });
+
+        if (response.error) {
+            slackStatus = 'UNAVAILABLE';
+            return;
+        }
+
+        slackStatus = response.status ?? '';
+        slackRedirectKey = response.key ?? '';
+    } catch {
+        slackStatus = 'UNAVAILABLE';
+    }
+}
+
+async function extractSlackStatusCheckParamsFromGithub() {
+    if (!window.location.pathname.includes('/pull/')) {
+        throw new Error('Not a PR discussion.');
+    }
+
+    const urlParts = window.location.pathname.split('/')
+    const slug = urlParts[1]
+
+    // Get organization ID via API using slug
+    const response = await browser.runtime.sendMessage({ type: 'GET_GITHUB_ORG_ID', slug });
+
+    // Get requester ID from DOM
+    const requester_id = 
+        document.querySelector('meta[name="octolytics-actor-id"]')?.getAttribute('content') ?? '<anonymous-user>';
+
+    return { organization: response.id, repository: urlParts[2], number: urlParts[4], requester_id }
+}
+
+function extractSlackStatusCheckParamsFromGitlab() {
+    if (!window.location.pathname.includes('/merge_requests/')) {
+        throw new Error('Not a PR discussion.');
+    }
+
+    // Get organization ID, repository ID and number from DOM
+    const organization = document.body.dataset.namespaceId;
+    const repository = document.body.dataset.projectId;
+    const number = document.body.dataset.pageTypeId;
+    let requester_id = '<anonymous-user>';
+
+    // Get requester ID from DOM (avatar image url)
+    const img = document.querySelector('img[data-testid="user-avatar-content"]');
+    if (img) {
+        const src = img.getAttribute('src');
+        const match = src.match(/\/user\/avatar\/(\d+)\//);
+        if (match) requester_id = match[1];
+    }
+
+    return { organization, repository, number, requester_id }
+}
+
+function processThreads() {
+    if (!slackStatus || slackStatus == 'PENDING' || slackStatus == 'UNAVAILABLE') return;
+
+    // Iterate over all comment threads and create promises to insert a button linking to their Slack discussion.
+    const threads = document.querySelectorAll(UNPROCESSED_THREAD_QUERY);
+    threads.forEach(initializeSlackLinkForThread);
+}
+
+async function initializeSlackLinkForThread(threadElement) {
+    if (!slackStatus || slackStatus == 'PENDING' || slackStatus == 'UNAVAILABLE' || slackStatus == 'NOT_TRACKED' ||
+        threadElement.classList.contains(SLACK_LINK_MARKER_CLASS)
+    ) {
+        return;
+    }
+
+    // Mark element as processed immediately to avoid duplicates
+    threadElement.classList.add(SLACK_LINK_MARKER_CLASS);
+
+    let redirectUrl;
+
+    switch (slackStatus) {
+        case 'NOT_INSTALLED':
+            redirectUrl = 'https://pullpo.io/products/channels'; // Default to explanation of this feature
+            break;
+        case 'AVAILABLE':
+            // TODO: Obtain threadId (in GitHub or GitLab)
+            let threadId = '';
+
+            const response = await browser.runtime.sendMessage({
+                type: 'GET_SLACK_REDIRECT_URL',
+                key: slackRedirectKey,
+                thread_id: threadId,
+                requester_id: slackRequesterId,
+            });
+
+            redirectUrl = response.redirect_url
+            break;
+        default:
+            return;
+    }
+
+    if (redirectUrl) {
+        const slackButton = createSlackRedirectButton(redirectUrl);
+        // TODO: Insert button (find where in GitHub or GitLab)
+    }
+}
+
+function createSlackRedirectButton(redirectUrl) {
+    const button = document.createElement('a');
+    button.href = url;
+    button.textContent = 'See Slack discussion';
+    button.target = '_blank'; // Open in a new tab
+    button.rel = 'noopener noreferrer';
+
+    // TODO: Apply the corresponding classes
+    button.className = '';
+    button.style.textDecoration = 'none';
+
+    return button;
 }
 
 // --- LocalStorage Helpers ---
@@ -444,19 +618,22 @@ function processCommentAreas() {
 }
 
 // Enhanced initialization with multiple strategies
-let lastUrl = location.href;
 let isProcessing = false;
+
+function processUiElements() {
+    processCommentAreas();
+    checkSlackStatus().then(processThreads);
+}
 
 // Function to handle URL changes
 function handleUrlChange() {
-
     // Reset processing flag
     isProcessing = false;
     // Multiple attempts to catch late-loaded content
-    processCommentAreas();
-    setTimeout(processCommentAreas, 500);
-    setTimeout(processCommentAreas, 1000);
-    setTimeout(processCommentAreas, 2000);
+    processUiElements();
+    setTimeout(processUiElements, 500);
+    setTimeout(processUiElements, 1000);
+    setTimeout(processUiElements, 2000);
 }
 
 // Listen for History API changes
@@ -485,11 +662,16 @@ setInterval(() => {
         if (textareas.length > 0) {
             processCommentAreas();
         }
+
+        const threads = document.querySelectorAll(UNPROCESSED_THREAD_QUERY);
+        if (threads.length > 0) {
+            checkSlackStatus().then(processThreads);
+        }
     }
 }, 1000);
 
 // Process comment areas on initial load
-processCommentAreas();
+processUiElements();
 
 // Main observer for dynamic content
 const observer = new MutationObserver((mutationsList) => {
@@ -531,6 +713,8 @@ const observer = new MutationObserver((mutationsList) => {
                     }
                 }
             }
+
+            // TODO: Somewhere in this mutation observer we should detect if there's a new thread that should contain a Slack link button.
         }
         isProcessing = false;
     }, 100);
@@ -547,7 +731,6 @@ observer.observe(document.body, {
 // Force check when tab becomes visible again
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
-
-        processCommentAreas();
+        processUiElements();
     }
 });
