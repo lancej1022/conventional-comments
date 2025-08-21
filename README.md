@@ -44,6 +44,7 @@ Code reviews are crucial for maintaining code quality, but they often suffer fro
   - `(if-minor)`: Address if the effort is small
 - 🔄 **Toggle Functionality**: Easily remove labels or decorations
 - 🎨 **Badge Style Option**: Switch between text and visual badge formats
+- 🧩 **Slack Threads**: Integrated with Pullpo's PR-Channels add-on for direct Slack thread links
 - 🌓 **Dark Mode Support**: Seamlessly works with both GitHub and GitLab themes
 
 ## 📥 Installation
@@ -103,10 +104,12 @@ The extension can be built for both Chrome and Firefox using our build system:
      npm run build
      ```
 
+      > [!NOTE]
+      > Append ` -- prod` to a build command to generate a minified bundle.
+
 3. Load the extension:
    - Chrome: Load the `build/chrome` directory as an unpacked extension
    - Firefox: Load the `build/firefox` directory as a temporary add-on
-
 
 ## 📄 License
 

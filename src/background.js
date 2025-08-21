@@ -1,22 +1,25 @@
-import browser from './browser-polyfill.js'
-
 // Message handler
-browser.runtime.onMessage.addListener(async (request, sender) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Validate sender is this chrome extension
-    if (sender.id !== browser.runtime.id) {
-        return; // Ignore this message
+    if (sender.id !== chrome.runtime.id) {
+        return false; // Ignore this message
     }
 
     // Assume all messages contain at least the 'type' field
+    
     switch (request.type) {
         case 'GET_GITHUB_ORG_ID':
-            return handleGetGithubOrgId(request);
+            handleGetGithubOrgId(request).then(sendResponse);
+            return true;
         case 'GET_PR_SLACK_STATUS':
-            return handleGetPrSlackStatus(request);
+            handleGetPrSlackStatus(request).then(sendResponse);
+            return true;
         case 'GET_SLACK_REDIRECT_URL':
-            return handleGetSlackRedirectUrl(request);
+            handleGetSlackRedirectUrl(request).then(sendResponse);
+            return true;
         default:
-            return { error: 'Unrecognized message' };
+            sendResponse({ error: 'Unrecognized message' });
+            return true;
     }
 });
 
