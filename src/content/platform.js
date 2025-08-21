@@ -69,6 +69,10 @@ const basePlatformStrategy = {
 
 const githubBaseStrategy = {
 	...basePlatformStrategy,
+	getPullRequestIdentifier() {
+		const urlParts = window.location.pathname.split('/');
+		return `${urlParts[1]}#${urlParts[2]}#${urlParts[4]}`;
+	},
 	async extractSlackStatusCheckParams() {
 		if (!window.location.pathname.includes('/pull/')) {
 			throw new Error('Not a PR discussion.');
@@ -103,11 +107,19 @@ const githubOldStrategy = {
 		}
 	},
 	insertThreadSlackRedirectButton(threadElement, slackButton) {
-		const actionsContainer = threadElement.children[threadElement.children.length - 1];
+		let actionsContainer = threadElement.children[threadElement.children.length - 1];
 		if (!actionsContainer) return false;
 
-		actionsContainer.classList.add('flex-items-center');
-		actionsContainer.classList.add('pr-3');
+		if (actionsContainer.dataset.quoteMarkdown) {
+			// There was no actions container, create one
+			actionsContainer = document.createElement('div');
+			actionsContainer.className = 'd-flex flex-justify-end p-2';
+			threadElement.appendChild(actionsContainer);
+		} else {
+			actionsContainer.classList.add('flex-items-center');
+			actionsContainer.classList.add('pr-3');
+		}
+
 		actionsContainer.appendChild(slackButton);
 		return true;
 	},
@@ -140,6 +152,12 @@ const githubNewStrategy = {
 const gitlabStrategy = {
 	...basePlatformStrategy,
 	config: GITLAB_CONFIG,
+	getPullRequestIdentifier() {
+		const organization = document.body.dataset.namespaceId;
+		const repository = document.body.dataset.projectId;
+		const number = document.body.dataset.pageTypeId;
+		return `${organization}#${repository}#${number}`;
+	},
 	extractSlackStatusCheckParams() {
 		if (!window.location.pathname.includes('/merge_requests/')) {
 			throw new Error('Not a PR discussion.');
@@ -166,7 +184,8 @@ const gitlabStrategy = {
 		const actionsContainer = threadElement.querySelector('div.discussion-with-resolve-btn');
 		if (!actionsContainer) return false;
 
-		actionsContainer.insertBefore(slackButton, actionsContainer.children[actionsContainer.children.length - 1]);
+		slackButton.children[0].style.marginRight = '8px'; // Increase icon separation
+		actionsContainer.children[0].after(slackButton);
 		return true;
 	},
 };

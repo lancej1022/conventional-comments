@@ -1,6 +1,6 @@
 import Platform from './content/platform.js';
 import { processCommentAreas, checkAndInitializeAddedTextareas } from './content/badges.js';
-import { checkSlackStatus, processThreads, checkAndInitializeAddedThreads, getSlackStatus } from './content/slack-threads.js';
+import { checkSlackStatus, processThreads, checkAndInitializeAddedThreads, resetSlackStatus } from './content/slack-threads.js';
 
 // Enhanced initialization with multiple strategies
 let isProcessing = false;
@@ -13,6 +13,10 @@ function processUiElements() {
 }
 
 function handleUrlChange() {
+    // Reset necessary state
+    resetSlackStatus();
+
+    // Process
     isProcessing = false;
     processUiElements();
     setTimeout(processUiElements, 500);
@@ -48,8 +52,8 @@ setInterval(() => {
         }
 
         const threads = document.querySelectorAll(Platform.strategy.getUnprocessedThreadQuery());
-        if (threads.length > 0 && !['NOT_TRACKED', 'PENDING'].includes(getSlackStatus())) {
-            checkSlackStatus().then(processThreads);
+        if (threads.length > 0) {
+            checkSlackStatus().then(processThreads());
         }
     }
 }, 1000);

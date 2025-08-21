@@ -1,12 +1,22 @@
 import Platform, { SLACK_LINK_MARKER_CLASS } from './platform.js';
 
-let slackStatus = '';
-let slackRedirectKey = '';
-let slackRequesterId = '';
+let prIdentifier = '';
+let slackStatus = '';      // PENDING, UNAVAILABLE, NOT_INSTALLED, NOT_TRACKED, AVAILABLE
+let slackRedirectKey = ''; // Cached on Slack status check
+let slackRequesterId = ''; // Cached on Slack status check: unnecessary to look it up at thread UI processing
 
 export async function checkSlackStatus() {
-    if (slackStatus == 'PENDING') return;
+    // Prevent duplicates
+    if (slackStatus == 'PENDING') return slackStatus;
+
+    const newPrIdentifier = Platform.strategy.getPullRequestIdentifier();
+    if (slackStatus != '' && prIdentifier == newPrIdentifier) {
+        return slackStatus; // This PR was already checked and executing this function would make no difference
+    }
+
+    // Start the check
     slackStatus = 'PENDING';
+    prIdentifier = newPrIdentifier;
 
     try {
         const params = await Platform.strategy.extractSlackStatusCheckParams();
@@ -24,14 +34,25 @@ export async function checkSlackStatus() {
         if (response.error) {
             console.error(response.error);
             slackStatus = 'UNAVAILABLE';
-            return;
+            return slackStatus;
         }
 
         slackStatus = response.status ?? '';
         slackRedirectKey = response.key ?? '';
-    } catch (e) {
-        console.error(e);
+    } catch {
         slackStatus = 'UNAVAILABLE';
+    }
+
+    return slackStatus;
+}
+
+export async function resetSlackStatus() {
+    const newPrIdentifier = Platform.strategy.getPullRequestIdentifier();
+    if (prIdentifier != newPrIdentifier) {
+        // Only reset values if old ones belonged to a different PR
+        slackStatus = '';
+        slackRedirectKey = '';
+        slackRequesterId = '';
     }
 }
 
@@ -40,10 +61,6 @@ export function processThreads() {
 
     const threads = document.querySelectorAll(Platform.strategy.getUnprocessedThreadQuery());
     threads.forEach(initializeSlackLinkForThread);
-}
-
-export function getSlackStatus() {
-    return slackStatus;
 }
 
 function initializeSlackLinkForThread(threadElement) {
