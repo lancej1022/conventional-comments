@@ -74,14 +74,6 @@ function createBadgeMarkdown(type, decoration) {
 
 // --- LocalStorage Helpers ---
 
-function getPreferredPrettifyState() {
-    return localStorage.getItem('conventionalCommentsHelper_prettifyEnabled') ?? 'true';
-}
-
-function setPreferredPrettifyState(enabled) {
-    localStorage.setItem('conventionalCommentsHelper_prettifyEnabled', enabled);
-}
-
 // --- Core Function: Update Comment Prefix (Handles Text or Badge) ---
 
 function updateCommentPrefix(toolbar, textarea) {
@@ -163,7 +155,6 @@ function createSettingsButton(toolbar, textarea) {
         const newStateString = newState.toString();
 
         toolbar.dataset.prettified = newStateString;
-        setPreferredPrettifyState(newStateString);
 
         button.classList.toggle('cc-settings-button-active', newState);
 
@@ -182,7 +173,6 @@ function renderToolbar(toolbar, textarea) {
     const state = toolbar.dataset.state || 'initial';
     const selectedType = toolbar.dataset.selectedType || null;
     const selectedDecoration = toolbar.dataset.selectedDecoration || null;
-    const prettifyEnabled = (toolbar.dataset.prettified ?? getPreferredPrettifyState()) === 'true';
 
     toolbar.innerHTML = '';
 
@@ -322,7 +312,7 @@ function extractInitialTextareaState(textarea) {
         return { state: 'typeSelected', label: badgeMatch[1], decorator: badgeMatch[2], prettified: 'true' };
     }
 
-    return { state: 'initial', label: '', decorator: '', prettified: getPreferredPrettifyState() };
+    return { state: 'initial', label: '', decorator: '', prettified: Platform.settings.get('prettify', 'true') };
 }
 
 // --- Public: process comment areas ---

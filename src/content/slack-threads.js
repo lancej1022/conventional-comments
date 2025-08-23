@@ -1,4 +1,7 @@
 import Platform, { SLACK_LINK_MARKER_CLASS } from './platform.js';
+import Popup from './popup.js';
+
+const SLACK_THREAD_BUTTON_MARKER_CLASS = 'cc-slack-button-marker';
 
 let prIdentifier = '';
 let slackStatus = '';      // PENDING, UNAVAILABLE, NOT_INSTALLED, NOT_TRACKED, AVAILABLE
@@ -71,39 +74,33 @@ function initializeSlackLinkForThread(threadElement) {
     threadElement.classList.add(SLACK_LINK_MARKER_CLASS);
 
     (async () => {
-        let redirectUrl;
-
-        switch (slackStatus) {
-            case 'NOT_INSTALLED':
-                redirectUrl = 'https://pullpo.io/products/channels';
-                break;
-            case 'AVAILABLE':
-                const threadId = Platform.strategy.getThreadIdFromThreadElement(threadElement);
-                if (!threadId) {
-                    return false;
-                }
-
-                const response = await chrome.runtime.sendMessage({
-                    type: 'GET_SLACK_REDIRECT_URL',
-                    key: slackRedirectKey,
-                    thread_id: threadId,
-                    requester_id: slackRequesterId,
-                });
-
-                if (response.error) {
-                    console.error('SLACK URL error:', response.error);
-                    return false;
-                }
-
-                redirectUrl = response.redirect_url;
-                break;
-            default:
-                return false;
+        if (slackStatus == 'NOT_INSTALLED') {
+            const slackButton = createSlackRedirectButton(null);
+            return Platform.strategy.insertThreadSlackRedirectButton(threadElement, slackButton);
         }
 
-        if (!redirectUrl) return false;
+        if (slackStatus != 'AVAILABLE') return false;
 
-        const slackButton = createSlackRedirectButton(redirectUrl);
+        const threadId = Platform.strategy.getThreadIdFromThreadElement(threadElement);
+        if (!threadId) {
+            return false;
+        }
+
+        const response = await chrome.runtime.sendMessage({
+            type: 'GET_SLACK_REDIRECT_URL',
+            key: slackRedirectKey,
+            thread_id: threadId,
+            requester_id: slackRequesterId,
+        });
+
+        if (response.error) {
+            console.error('SLACK URL error:', response.error);
+            return false;
+        }
+
+        if (!response.redirect_url) return false;
+
+        const slackButton = createSlackRedirectButton(response.redirect_url);
         return Platform.strategy.insertThreadSlackRedirectButton(threadElement, slackButton);
     })().then((inserted) => {
         if (!inserted) threadElement.classList.remove(SLACK_LINK_MARKER_CLASS);
@@ -111,12 +108,21 @@ function initializeSlackLinkForThread(threadElement) {
 }
 
 function createSlackRedirectButton(url) {
-    const button = document.createElement('a');
-    button.href = url;
-    button.target = '_blank';
-    button.rel = 'noopener noreferrer';
+    let button;
 
-    button.className = Platform.strategy.getSlackThreadButtonClassName();
+    if (url !== null) {
+        button = document.createElement('a');
+        button.href = url;
+        button.target = '_blank';
+        button.rel = 'noopener noreferrer';
+    } else {
+        button = document.createElement('button');
+        button.addEventListener('click', () => {
+            Popup.open('/popups/slack-threads.html')
+        });
+    }
+
+    button.className = Platform.strategy.getSlackThreadButtonClassName() + ' ' + SLACK_THREAD_BUTTON_MARKER_CLASS;
     button.style.textDecoration = 'none';
 
     const icon = document.createElement('img');
@@ -147,4 +153,20 @@ export function checkAndInitializeAddedThreads(node) {
     }
 }
 
+document.addEventListener('platformSettingsChanged', (event) => {
+    const { changes } = event.detail; // Extract the data from the event
 
+    // In the case where threads are re-enabled, the timer on content.js will render them within 1 second
+    if (changes.hasOwnProperty('slack') && !changes.slack.newValue) {
+        // Remove all Slack buttons by their class markers
+        const slackButtonClass = Platform.strategy.getSlackThreadButtonClassName();
+        const slackButtons = document.querySelectorAll(`.${SLACK_THREAD_BUTTON_MARKER_CLASS}`);
+        slackButtons.forEach(button => button.remove());
+        
+        // Remove the marker class from all thread button containers
+        const markedThreads = document.querySelectorAll(`.${SLACK_LINK_MARKER_CLASS}`);
+        markedThreads.forEach(thread => {
+            thread.classList.remove(SLACK_LINK_MARKER_CLASS);
+        });
+    }
+});

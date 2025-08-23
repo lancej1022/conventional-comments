@@ -199,6 +199,13 @@ function detectGithubExperience() {
 
 export const Platform = (function() {
 	let currentStrategy = null;
+    let currentSettings = null;
+
+    // Promise-based initialization
+    let resolveReady;
+    const readyPromise = new Promise(resolve => {
+        resolveReady = resolve;
+    });
 
 	function determineStrategy() {
 		const hostname = window.location.hostname;
@@ -214,7 +221,28 @@ export const Platform = (function() {
 		return { ...basePlatformStrategy };
 	}
 
+    chrome.storage.local.get(null, (settings) => {
+        currentSettings = settings;
+        resolveReady();
+    });
+
+	chrome.storage.onChanged.addListener((changes, areaName) => {
+        // We only care about changes in 'local' storage
+        if (areaName === 'local') {
+            // Update currentSettings with the new values
+            for (let key in changes) {
+                currentSettings[key] = changes[key].newValue;
+            }
+
+            document.dispatchEvent(new CustomEvent('platformSettingsChanged', { detail: { changes }}));
+        }
+	});
+
 	const publicInterface = {
+        // A promise that resolves when the initial settings have been loaded.
+        // Use this to ensure the Platform is ready before using it.
+        ready: () => readyPromise,
+
 		recheck() {
 			currentStrategy = determineStrategy();
 		},
@@ -224,6 +252,18 @@ export const Platform = (function() {
 		get strategy() {
 			return currentStrategy;
 		},
+		settings: {
+            get(key, defaultValue = undefined) {
+                if (currentSettings === null) {
+                    return defaultValue;
+                }
+
+                return currentSettings.hasOwnProperty(key) ? currentSettings[key] : defaultValue;
+            },
+            set(key, value) {
+                return chrome.storage.local.set({ [key]: value });
+            },
+		}
 	};
 
 	currentStrategy = determineStrategy();

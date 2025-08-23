@@ -16,6 +16,21 @@ function copyFile(source, target) {
     fs.copyFileSync(source, target);
 }
 
+// Function to copy a whole directory recursively
+function copyDirectory(sourceDir, targetDir) {
+    ensureDirectoryExists(targetDir);
+    const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+    for (const entry of entries) {
+        const sourcePath = path.join(sourceDir, entry.name);
+        const targetPath = path.join(targetDir, entry.name);
+        if (entry.isDirectory()) {
+            copyDirectory(sourcePath, targetPath);
+        } else if (entry.isFile()) {
+            copyFile(sourcePath, targetPath);
+        }
+    }
+}
+
 // Function to bundle JS files using esbuild to resolve imports
 async function bundleScript(entryPoint, outFile, shouldMinify) {
     try {
@@ -55,18 +70,18 @@ async function buildChrome(buildMode) {
     await bundleScript('./src/content.js', path.join(chromeDir, 'content.js'), buildMode == 'prod');
     copyFile('./src/background.js', path.join(chromeDir, 'background.js'));
     copyFile('./src/style.css', path.join(chromeDir, 'style.css'));
+    
+    // Copy popups
+    const popupsDir = path.join(chromeDir, 'popups');
+    copyDirectory('./src/popups', popupsDir);
 
     // Copy assets
     const assetsDir = path.join(chromeDir, 'assets');
-    ensureDirectoryExists(assetsDir);
-    copyFile('./assets/slack_icon.svg', path.join(assetsDir, 'slack_icon.svg'));
+    copyDirectory('./assets', assetsDir);
     
     // Copy icons
     const iconsDir = path.join(chromeDir, 'icons');
-    ensureDirectoryExists(iconsDir);
-    copyFile('./icons/icon16.png', path.join(iconsDir, 'icon16.png'));
-    copyFile('./icons/icon48.png', path.join(iconsDir, 'icon48.png'));
-    copyFile('./icons/icon128.png', path.join(iconsDir, 'icon128.png'));
+    copyDirectory('./icons', iconsDir);
 
     console.log('Chrome build completed successfully!');
 }
@@ -99,18 +114,18 @@ async function buildFirefox(buildMode) {
     await bundleScript('./src/content.js', path.join(firefoxDir, 'content.js'), buildMode == 'prod');
     copyFile('./src/background.js', path.join(firefoxDir, 'background.js'));
     copyFile('./src/style.css', path.join(firefoxDir, 'style.css'));
+    
+    // Copy popups
+    const popupsDir = path.join(firefoxDir, 'popups');
+    copyDirectory('./src/popups', popupsDir);
 
     // Copy assets
     const assetsDir = path.join(firefoxDir, 'assets');
-    ensureDirectoryExists(assetsDir);
-    copyFile('./assets/slack_icon.svg', path.join(assetsDir, 'slack_icon.svg'));
+    copyDirectory('./assets', assetsDir);
     
     // Copy icons
     const iconsDir = path.join(firefoxDir, 'icons');
-    ensureDirectoryExists(iconsDir);
-    copyFile('./icons/icon16.png', path.join(iconsDir, 'icon16.png'));
-    copyFile('./icons/icon48.png', path.join(iconsDir, 'icon48.png'));
-    copyFile('./icons/icon128.png', path.join(iconsDir, 'icon128.png'));
+    copyDirectory('./icons', iconsDir);
 
     console.log('Firefox build completed successfully!');
 }

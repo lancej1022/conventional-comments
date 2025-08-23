@@ -3,7 +3,14 @@
   "name": "Conventional Comments (GitHub) - by Pullpo",
   "version": "0.2.1",
   "description": "Helps format code review comments on GitHub using the Conventional Comments standard.",
-  "action": {},
+  "action": {
+    "default_popup": "popups/default.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
   "permissions": [
     "storage"
   ],
@@ -31,7 +38,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": [ "assets/slack_icon.svg" ],
+      "resources": [ "popups/*", "assets/*" ],
       "matches": [ "https://github.com/*", "https://gitlab.com/*" ]
     }
   ]

@@ -8,6 +8,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Assume all messages contain at least the 'type' field
     
     switch (request.type) {
+        case 'OPEN_POPUP':
+            handleOpenPopup(request).then(sendResponse);
+            return true;
         case 'GET_GITHUB_ORG_ID':
             handleGetGithubOrgId(request).then(sendResponse);
             return true;
@@ -22,6 +25,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return true;
     }
 });
+
+async function handleOpenPopup(request) {
+    return new Promise((resolve) => {
+        chrome.action.setPopup({ popup: request.path }, () => {
+            try {
+                chrome.action.openPopup({}, () => {
+                    setTimeout(() => {
+                        // Reset popup to default behavior after small delay, ensuring new popup has time to render
+                        chrome.action.setPopup({ popup: "popups/default.html" });
+                    }, 300);
+                    resolve({ success: true });
+                });
+            } catch {
+                // Reset popup to default behavior immediately
+                chrome.action.setPopup({ popup: "popups/default.html" }); 
+                resolve({ error: 'API_UNAVAILABLE' });
+            }
+        });
+    });
+}
 
 async function handleGetGithubOrgId(request) {
     const apiUrl = `https://api.github.com/orgs/${request.slug}`;

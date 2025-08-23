@@ -1,4 +1,5 @@
 import Platform from './content/platform.js';
+import Popup from './content/popup.js';
 import { processCommentAreas, checkAndInitializeAddedTextareas } from './content/badges.js';
 import { checkSlackStatus, processThreads, checkAndInitializeAddedThreads, resetSlackStatus } from './content/slack-threads.js';
 
@@ -9,7 +10,7 @@ function processUiElements() {
     Platform.recheck();
 
     processCommentAreas();
-    checkSlackStatus().then(processThreads);
+    if (Platform.settings.get('slack', true)) checkSlackStatus().then(processThreads);
 }
 
 function handleUrlChange() {
@@ -43,57 +44,66 @@ history.replaceState = function() {
     handleUrlChange();
 };
 
-// Periodic check for new elements
-setInterval(() => {
-    if (!isProcessing) {
-        const textareas = document.querySelectorAll(Platform.strategy.getUnprocessedTextareaQuery());
-        if (textareas.length > 0) {
-            processCommentAreas();
-        }
+function main() {
+    // Initial load
+    processUiElements();
 
-        const threads = document.querySelectorAll(Platform.strategy.getUnprocessedThreadQuery());
-        if (threads.length > 0) {
-            checkSlackStatus().then(processThreads());
-        }
-    }
-}, 1000);
+    // Periodic check for new elements
+    setInterval(() => {
+        if (!isProcessing) {
+            const textareas = document.querySelectorAll(Platform.strategy.getUnprocessedTextareaQuery());
+            if (textareas.length > 0) {
+                processCommentAreas();
+            }
 
-// Initial load
-processUiElements();
-
-// Mutation observer
-const observer = new MutationObserver((mutationsList) => {
-    if (isProcessing) return;
-    isProcessing = true;
-
-    setTimeout(() => {
-        Platform.recheck();
-
-        for (const mutation of mutationsList) {
-            if (mutation.type === 'childList') {
-                for (const node of mutation.addedNodes) {
-                    if (node.nodeType === Node.ELEMENT_NODE) {
-                        checkAndInitializeAddedTextareas(node);
-                        checkAndInitializeAddedThreads(node);
-                    }
+            if (Platform.settings.get('slack', true)) {
+                const threads = document.querySelectorAll(Platform.strategy.getUnprocessedThreadQuery());
+                if (threads.length > 0) {
+                    checkSlackStatus().then(processThreads());
                 }
             }
         }
-        isProcessing = false;
-    }, 100);
-});
+    }, 1000);
 
-observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['class', 'id']
-});
+    // Mutation observer
+    const observer = new MutationObserver((mutationsList) => {
+        if (isProcessing) return;
+        isProcessing = true;
 
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-        processUiElements();
-    }
-});
+        setTimeout(() => {
+            Platform.recheck();
 
- 
+            for (const mutation of mutationsList) {
+                if (mutation.type === 'childList') {
+                    for (const node of mutation.addedNodes) {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            checkAndInitializeAddedTextareas(node);
+                            if (Platform.settings.get('slack', true)) checkAndInitializeAddedThreads(node);
+                        }
+                    }
+                }
+            }
+            isProcessing = false;
+        }, 100);
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'id']
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            processUiElements();
+        }
+    });
+}
+
+Platform.ready().then(main);
+/*
+setTimeout(() => {
+    Popup.open('/popups/slack-threads.html');
+}, 5000);
+*/
