@@ -118,7 +118,27 @@ function createSlackRedirectButton(url) {
     } else {
         button = document.createElement('button');
         button.addEventListener('click', () => {
-            Popup.open('/popups/slack-threads.html')
+            // Get organization name from URL for query parameter
+            const orgSlug = window.location.pathname.split('/')[1]; // GitHub org slug from URL
+            
+            try {
+                // Send message to background script to open install popup
+                chrome.runtime.sendMessage({
+                    type: 'OPEN_INSTALL_POPUP',
+                    org: orgSlug
+                }, (response) => {
+                    // Handle response or error
+                    if (chrome.runtime.lastError) {
+                        console.warn('Extension context invalidated, opening page directly:', chrome.runtime.lastError);
+                        // Fallback: open page directly using window.open
+                        window.open(`https://pullpo.io/pr-channels-from-cc?org=${encodeURIComponent(orgSlug)}`, '_blank');
+                    }
+                });
+            } catch (error) {
+                console.warn('Chrome extension error, opening page directly:', error);
+                // Fallback: open page directly using window.open
+                window.open(`https://pullpo.io/pr-channels-from-cc?org=${encodeURIComponent(orgSlug)}`, '_blank');
+            }
         });
     }
 
