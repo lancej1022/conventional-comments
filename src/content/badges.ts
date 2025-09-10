@@ -62,12 +62,12 @@ let settingsCounter = 0;
 
 // --- Badge Helpers ---
 
-function getBadgeColor(type) {
+function getBadgeColor(type: string) {
   const label = LABELS.find((l) => l.label === type);
   return label ? label.color.substring(1) : "6B7280";
 }
 
-function createBadgeMarkdown(type, decoration) {
+function createBadgeMarkdown(type: string, decoration: string) {
   const labelColor = getBadgeColor(type);
   let label = type;
   let message = decoration || "";
@@ -81,7 +81,7 @@ function createBadgeMarkdown(type, decoration) {
   }
 
   let badgeUrl;
-  const encode = (str) =>
+  const encode = (str: string) =>
     encodeURIComponent(str.replace(/-/g, "--").replace(/_/g, "__"));
 
   if (message) {
@@ -103,7 +103,10 @@ function createBadgeMarkdown(type, decoration) {
 
 // --- Core Function: Update Comment Prefix (Handles Text or Badge) ---
 
-function updateCommentPrefix(toolbar, textarea) {
+function updateCommentPrefix(
+  toolbar: HTMLElement,
+  textarea: HTMLTextAreaElement
+) {
   const currentValue = textarea.value;
   const originalSelectionStart = textarea.selectionStart;
   const originalSelectionEnd = textarea.selectionEnd;
@@ -123,9 +126,9 @@ function updateCommentPrefix(toolbar, textarea) {
     subject = currentValue.substring(initialPrefix.length);
   }
 
-  let newPrefix, newValue;
+  let newPrefix: string | undefined, newValue: string | undefined;
   if (newPrettified) {
-    newPrefix = createBadgeMarkdown(newType, newDecoration) + "\n";
+    newPrefix = createBadgeMarkdown(newType ?? "", newDecoration ?? "") + "\n";
     newValue = newPrefix + subject.trimStart();
   } else {
     newPrefix = newType;
@@ -141,9 +144,9 @@ function updateCommentPrefix(toolbar, textarea) {
 
   if (newType) {
     newSelectionStart =
-      originalSelectionStart - initialPrefix.length + newPrefix.length;
+      originalSelectionStart - initialPrefix.length + (newPrefix?.length ?? 0);
     newSelectionEnd =
-      originalSelectionEnd - initialPrefix.length + newPrefix.length;
+      originalSelectionEnd - initialPrefix.length + (newPrefix?.length ?? 0);
   } else {
     newSelectionStart = originalSelectionStart - initialPrefix.length;
     newSelectionEnd = originalSelectionEnd - initialPrefix.length;
@@ -161,7 +164,10 @@ function updateCommentPrefix(toolbar, textarea) {
 
 // --- Settings UI ---
 
-function createSettingsButton(toolbar, textarea) {
+function createSettingsButton(
+  toolbar: HTMLElement,
+  textarea: HTMLTextAreaElement
+) {
   const button = document.createElement("button");
   button.id = `${SETTINGS_BUTTON_ID_PREFIX}${settingsCounter}`;
   button.title = "Toggle prettify";
@@ -199,7 +205,7 @@ function createSettingsButton(toolbar, textarea) {
 
 // --- Render Toolbar ---
 
-function renderToolbar(toolbar, textarea) {
+function renderToolbar(toolbar: HTMLElement, textarea: HTMLTextAreaElement) {
   const state = toolbar.dataset.state || "initial";
   const selectedType = toolbar.dataset.selectedType || null;
   const selectedDecoration = toolbar.dataset.selectedDecoration || null;
@@ -248,7 +254,7 @@ function renderToolbar(toolbar, textarea) {
     typeLabel.textContent = selectedType;
     typeLabel.title = `Click to change type from '${selectedType}'`;
     typeLabel.classList.add("cc-selected-type-label");
-    typeLabel.dataset.type = selectedType;
+    typeLabel.dataset.type = selectedType ?? "";
 
     typeLabel.addEventListener("click", () => {
       toolbar.dataset.state = "changeType";
@@ -298,7 +304,7 @@ function renderToolbar(toolbar, textarea) {
 
 // --- Initialize Toolbar for a Textarea ---
 
-function initializeToolbarForTextarea(textarea) {
+function initializeToolbarForTextarea(textarea: HTMLTextAreaElement) {
   const textareaId =
     textarea.id ||
     textarea.name ||
@@ -334,7 +340,7 @@ function initializeToolbarForTextarea(textarea) {
 
 // --- Detect initial textarea state ---
 
-function extractInitialTextareaState(textarea) {
+function extractInitialTextareaState(textarea: HTMLTextAreaElement) {
   const initialValue = textarea.value;
 
   const plainMatch = initialValue.match(PLAIN_CC_REGEX);
@@ -368,7 +374,7 @@ function extractInitialTextareaState(textarea) {
 // --- Public: process comment areas ---
 
 export function processCommentAreas() {
-  const query = Platform.strategy.getUnprocessedTextareaQuery();
+  const query = Platform.strategy?.getUnprocessedTextareaQuery();
   const commentTextareas = document.querySelectorAll(query);
 
   commentTextareas.forEach((textarea) => {
@@ -394,8 +400,8 @@ export function processCommentAreas() {
 
 // --- Helpers for content.js ---
 
-export function checkAndInitializeAddedTextareas(node) {
-  const query = Platform.strategy.getUnprocessedTextareaQuery();
+export function checkAndInitializeAddedTextareas(node: HTMLTextAreaElement) {
+  const query = Platform.strategy?.getUnprocessedTextareaQuery();
   if (
     node.matches &&
     node.matches(query) &&

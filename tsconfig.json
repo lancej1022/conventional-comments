@@ -28,7 +28,8 @@
     "module": "Preserve",
     "moduleResolution": "Bundler",
     "noEmit": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "types": ["chrome", "node"]
   },
   "exclude": ["node_modules", "build", "dist", ".expo"]
 }

@@ -1,15 +1,9 @@
 import Platform from "./content/platform";
-import Popup from "./content/popup";
+
 import {
   processCommentAreas,
   checkAndInitializeAddedTextareas,
 } from "./content/badges";
-import {
-  checkSlackStatus,
-  processThreads,
-  checkAndInitializeAddedThreads,
-  resetSlackStatus,
-} from "./content/slack-threads";
 
 // Enhanced initialization with multiple strategies
 let isProcessing = false;
@@ -18,14 +12,9 @@ function processUiElements() {
   Platform.recheck();
 
   processCommentAreas();
-  if (Platform.settings.get("slack", true))
-    checkSlackStatus().then(processThreads);
 }
 
 function handleUrlChange() {
-  // Reset necessary state
-  resetSlackStatus();
-
   // Process
   isProcessing = false;
   processUiElements();
@@ -43,12 +32,15 @@ window.addEventListener("replacestate", handleUrlChange);
 const originalPushState = history.pushState;
 const originalReplaceState = history.replaceState;
 
+// TODO: Implement an actual router lol
 history.pushState = function () {
+  // @ts-expect-error see above TODO comment
   originalPushState.apply(this, arguments);
   handleUrlChange();
 };
 
 history.replaceState = function () {
+  // @ts-expect-error see above TODO comment
   originalReplaceState.apply(this, arguments);
   handleUrlChange();
 };
@@ -61,19 +53,10 @@ function main() {
   setInterval(() => {
     if (!isProcessing) {
       const textareas = document.querySelectorAll(
-        Platform.strategy.getUnprocessedTextareaQuery()
+        Platform.strategy?.getUnprocessedTextareaQuery()
       );
       if (textareas.length > 0) {
         processCommentAreas();
-      }
-
-      if (Platform.settings.get("slack", true)) {
-        const threads = document.querySelectorAll(
-          Platform.strategy.getUnprocessedThreadQuery()
-        );
-        if (threads.length > 0) {
-          checkSlackStatus().then(processThreads());
-        }
       }
     }
   }, 1000);
@@ -88,11 +71,10 @@ function main() {
 
       for (const mutation of mutationsList) {
         if (mutation.type === "childList") {
+          // @ts-expect-error fix this TS error carried over from the original fork
           for (const node of mutation.addedNodes) {
             if (node.nodeType === Node.ELEMENT_NODE) {
               checkAndInitializeAddedTextareas(node);
-              if (Platform.settings.get("slack", true))
-                checkAndInitializeAddedThreads(node);
             }
           }
         }
@@ -116,8 +98,3 @@ function main() {
 }
 
 Platform.ready().then(main);
-/*
-setTimeout(() => {
-    Popup.open('/popups/slack-threads.html');
-}, 5000);
-*/

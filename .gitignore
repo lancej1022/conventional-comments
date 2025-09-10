@@ -1,4 +1,6 @@
 # Build output
+dist/
+.cache
 build/
 
 # IDE and editor files

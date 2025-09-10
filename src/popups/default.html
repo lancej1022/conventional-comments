@@ -1,55 +1,27 @@
 <html>
-    <head>
-        <title>Conventional Comments Settings</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body id="cc-popup-body">
-        <h1>Conventional Comments Settings</h1>
+  <head>
+    <title>Conventional Comments Settings</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body id="cc-popup-body">
+    <h1>Conventional Comments Settings</h1>
 
-        <div class="setting-group">
-            <h2>Visual Badges</h2>
-            <p>
-                Display conventional comment tags (like "suggestion" or "nitpick") as colorful badges instead of plain text. Makes your comments more visually appealing and easier to scan.
-            </p>
-            <div class="toggle-container">
-                <span>Show tags as badges</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="prettify">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-        </div>
+    <div class="setting-group">
+      <h2>Visual Badges</h2>
+      <p>
+        Display conventional comment tags (like "suggestion" or "nitpick") as
+        colorful badges instead of plain text. Makes your comments more visually
+        appealing and easier to scan.
+      </p>
+      <div class="toggle-container">
+        <span>Show tags as badges</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="prettify" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
 
-        <div class="setting-group">
-            <h2>Slack Integration</h2>
-            <p>
-                Add "Open in Slack" buttons to pull request discussions. Jump directly from GitHub/GitLab comments to your team's Slack conversation about the same code.
-            </p>
-            <div class="toggle-container">
-                <span>Show Slack buttons</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="slack-threads">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-        </div>
-
-        <!-- Support Links Section -->
-        <div class="support-section">
-            <h2>Support & Community</h2>
-            <div class="support-links">
-                <a href="https://github.com/pullpo-io/conventional-comments/issues" target="_blank" rel="noopener noreferrer" class="btn-link">
-                    Give Feedback
-                </a>
-                <a href="https://github.com/pullpo-io/conventional-comments" target="_blank" rel="noopener noreferrer" class="btn-link">
-                    GitHub Repo
-                </a>
-                <a href="mailto:support@pullpo.io" class="btn-link">
-                    Contact Support
-                </a>
-            </div>
-        </div>
-            
-        <script src="default.js"></script>
-    </body>
+    <script src="default.js" type="module"></script>
+  </body>
 </html>

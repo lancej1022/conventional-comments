@@ -4,18 +4,25 @@
   "type": "module",
   "description": "Helps format code review comments on GitHub using the Conventional Comments standard.",
   "scripts": {
-    "build:chrome": "node build-manifests.js chrome",
-    "build:firefox": "node build-manifests.js firefox",
-    "build": "node build-manifests.js"
+    "dev": "vite",
+    "build": "vite build",
+    "prepare": "husky",
+    "typecheck": "tsc --noEmit",
+    "knip": "knip"
   },
   "dependencies": {
+    "@types/chrome": "^0.1.6",
     "esbuild": "^0.25.9"
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@types/node": "^24.3.1",
+    "@vitejs/plugin-react": "^5.0.2",
+    "husky": "^9.1.7",
+    "knip": "^5.63.1",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5"
   }
 }

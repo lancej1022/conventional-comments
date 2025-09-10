@@ -1,43 +1,45 @@
-export default Popup = {
-    async open(path) {
-        const result = await chrome.runtime.sendMessage({
-            type: 'OPEN_POPUP',
-            path,
-        });
+const Popup = {
+  async open(path: any) {
+    const result = await chrome.runtime.sendMessage({
+      type: "OPEN_POPUP",
+      path,
+    });
 
-        if (result && result.error == 'API_UNAVAILABLE') {
-            openFallbackModal(path);
-        }
-    }, 
+    if (result && result.error == "API_UNAVAILABLE") {
+      openFallbackModal(path);
+    }
+  },
 };
 
-async function openFallbackModal(path) {
-    const MODAL_ID = 'cc-modal-container';
+export default Popup;
 
-    if (document.getElementById(MODAL_ID)) return;
+async function openFallbackModal(path: string) {
+  const MODAL_ID = "cc-modal-container";
 
-    const [htmlResponse, cssResponse] = await Promise.all([
-        fetch(chrome.runtime.getURL(path)),
-        fetch(chrome.runtime.getURL('popups/style.css'))
-    ]);
+  if (document.getElementById(MODAL_ID)) return;
 
-    const htmlContent = await htmlResponse.text();
-    const cssContent = await cssResponse.text(); // Get the text content of the stylesheet
-    
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlContent, 'text/html');
-    const ccIcon = chrome.runtime.getURL('assets/cc_icon.png');
-    const popupBody = doc.body.innerHTML;
+  const [htmlResponse, cssResponse] = await Promise.all([
+    fetch(chrome.runtime.getURL(path)),
+    fetch(chrome.runtime.getURL("popups/style.css")),
+  ]);
 
-    const modalHost = document.createElement('div');
-    modalHost.id = MODAL_ID;
-    document.body.appendChild(modalHost);
+  const htmlContent = await htmlResponse.text();
+  const cssContent = await cssResponse.text(); // Get the text content of the stylesheet
 
-    const shadowRoot = modalHost.attachShadow({ mode: 'open' });
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlContent, "text/html");
+  const ccIcon = chrome.runtime.getURL("assets/cc_icon.png");
+  const popupBody = doc.body.innerHTML;
 
-    // Since the common styling `style.css` is found inside the <head> tag, and here we extract the popup's <body>
-    // we need to inject it along with the styling of the modal itself.
-    shadowRoot.innerHTML = `
+  const modalHost = document.createElement("div");
+  modalHost.id = MODAL_ID;
+  document.body.appendChild(modalHost);
+
+  const shadowRoot = modalHost.attachShadow({ mode: "open" });
+
+  // Since the common styling `style.css` is found inside the <head> tag, and here we extract the popup's <body>
+  // we need to inject it along with the styling of the modal itself.
+  shadowRoot.innerHTML = `
         <style>
         ${cssContent}
 
@@ -78,35 +80,37 @@ async function openFallbackModal(path) {
         </div>
     `;
 
-    // The fallback modal won't load the scripts automatically, we need to load them within the extention's 
-    // environment (here) "manually"
-    doc.querySelectorAll('script').forEach(async (scriptTag) => {
-        if (!scriptTag.src) {
-            return;
-        }
+  // The fallback modal won't load the scripts automatically, we need to load them within the extention's
+  // environment (here) "manually"
+  doc.querySelectorAll("script").forEach(async (scriptTag) => {
+    if (!scriptTag.src) {
+      return;
+    }
 
-        // Assume scripts are modules inside extension's ./popups directory and contain an initialize function
-        await import(chrome.runtime.getURL('popups/' + scriptTag.getAttribute('src')));
-    });
+    // Assume scripts are modules inside extension's ./popups directory and contain an initialize function
+    await import(
+      chrome.runtime.getURL("popups/" + scriptTag.getAttribute("src"))
+    );
+  });
 
-    const closeModal = () => {
-        // Remove the global listener to prevent memory leaks
-        document.removeEventListener('click', handleOutsideClick);
-        modalHost.remove();
-    };
+  const closeModal = () => {
+    // Remove the global listener to prevent memory leaks
+    document.removeEventListener("click", handleOutsideClick);
+    modalHost.remove();
+  };
 
-    const handleOutsideClick = (event) => {
-        // If our modalHost is NOT in that path, the click was outside.
-        if (!event.composedPath().includes(modalHost)) {
-            closeModal();
-        }
-    };
+  const handleOutsideClick = (event: Event) => {
+    // If our modalHost is NOT in that path, the click was outside.
+    if (!event.composedPath().includes(modalHost)) {
+      closeModal();
+    }
+  };
 
-    shadowRoot.querySelector('.close-btn').addEventListener('click', closeModal);
-    
-    // Add the global listener for clicks outside the modal
-    // A small timeout ensures this listener is added after the current click event cycle is complete
-    setTimeout(() => {
-        document.addEventListener('click', handleOutsideClick);
-    }, 10);
+  shadowRoot.querySelector(".close-btn")?.addEventListener("click", closeModal);
+
+  // Add the global listener for clicks outside the modal
+  // A small timeout ensures this listener is added after the current click event cycle is complete
+  setTimeout(() => {
+    document.addEventListener("click", handleOutsideClick);
+  }, 10);
 }
